@@ -51,54 +51,121 @@ The setup chunk of this document carries forward the work from Wisdom and Courag
 
 Use `predictions(fit_governors)` to estimate the years lived after the election for individual candidates in the sample.
 
+```{r}
+predictions(fit_governors) |> 
+  as_tibble() |>
+    select(election_result, election_age, party, conf.low, conf.high) |> 
+      head(6)
+```
 
 
 Use `avg_predictions(fit_governors, by = "election_result")` to estimate the average years lived after the election for winners and losers.
 
-
+```{r}
+avg_predictions(fit_governors, by = "election_result")
+```
 
 What is the expected number of years lived after the election for a losing candidate (with 95% CI)?
 
+The expected number of years is an average of 27.2 years with a confidence interval between 25.2-29.2.
 
 
 What is the expected number of years lived after the election for a winning candidate (with 95% CI)?
 
+The expected number of years is an average of 29.6 years with a confidence interval between 27.7-31.5.
 
 
 ### Comparisons
 
 Use `avg_comparisons(fit_governors, variables = "election_result")` to estimate the effect of winning on years lived after the election.
 
+```{r}
+avg_comparisons(fit_governors, variables = "election_result")
+```
+
+Winning results in an average of living 8.63 years longer (with a confidence interval of 3.26 to 14).
 
 
 Why is the estimate from `avg_comparisons()` so much larger than the difference between the two group averages from `avg_predictions()`?
 
-
+avg_predictions averages each group under their own win margins. Meanwhile, avg_comparisons averages within each row while having win_margins fixed.
 
 ### Visualizations
 
 Create a visualization of the average predictions by election result using `plot_predictions()`.
 
-
+```{r}
+plot_predictions(fit_governors, by = "election_result", draw = FALSE) |>
+  ggplot(aes(x = election_result, y = estimate, ymin = conf.low, ymax = conf.high, color = election_result)) +
+  geom_pointrange(size = 1) +
+  scale_color_manual(values = c("Lose" = "#d95f02", "Win" = "#1b9e77")) +
+  labs(
+    title = "Expected Post-Election Lifespan of Gubernatorial Candidates",
+    subtitle = "Average predicted years lived after election by outcome",
+    caption = "Source: Barfort, Klemmensen, and Larsen (2021)",
+    x = "Election Outcome",
+    y = "Predicted Years Lived After Election (Years)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", size = 14, margin = margin(b = 6)),
+    plot.subtitle = element_text(color = "grey30", size = 11, margin = margin(b = 12)),
+    plot.caption = element_text(color = "grey50", size = 8, hjust = 0, margin = margin(t = 12)),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+```
 
 What measure of uncertainty is shown in this plot?
 
-
+The plot shows the 95% confidence intervals.
 
 Create a plot showing predicted years lived after the election as a function of `election_age`, separately for winners and losers.
 
-
+```{r}
+plot_predictions(fit_governors, condition = c("election_age", "election_result"), draw = FALSE) |>
+  ggplot(aes(x = election_age, y = estimate, ymin = conf.low, ymax = conf.high, color = election_result, fill = election_result)) +
+  geom_ribbon(alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c("Lose" = "#d95f02", "Win" = "#1b9e77")) +
+  scale_fill_manual(values = c("Lose" = "#d95f02", "Win" = "#1b9e77")) +
+  labs(
+    title = "Predicted Candidate Longevity by Age and Election Outcome",
+    subtitle = "Predicted years lived after election as a function of age",
+    caption = "Source: Barfort, Klemmensen, and Larsen (2021)",
+    x = "Age at Election (Years)",
+    y = "Predicted Years Lived After Election",
+    color = "Election Outcome",
+    fill = "Election Outcome"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, margin = margin(b = 6)),
+    plot.subtitle = element_text(color = "grey30", size = 11, margin = margin(b = 12)),
+    plot.caption = element_text(color = "grey50", size = 8, hjust = 0, margin = margin(t = 12)),
+    legend.position = "bottom",
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+```
 
 ### Interpretation
 
 How does the life insurer interpret the estimated effect of winning? How does the researcher interpret the same number differently?
 
-
+The life insurer does not really interpret this. They use the DGM to predict per unit life expectancy. Meanwhile, the researcher interprets this as the causal effect.
 
 ### Humility
 
 Besides the average years lived, identify two additional quantities of interest the person in your scenario might care about.
 
+Party and wealth.
 
 
 Why might these estimates be a poor answer to your scenario's question? Identify at least two possible sources of bias.
+
+1) The sample is small, and the confidence intervals are large.
+2) The treatment is winning a gubernatorial election, while the life insurer needs to focus on winning Senate elections.
